@@ -1,0 +1,57 @@
+name: Main
+on:
+  push:
+    branches: ["main"]
+  watch:
+    types: started
+    
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build slide1
+        run: |
+          cd slide1
+          npm install
+          npm run build -- --base=/learn_slidev/slide1/
+          cd ..
+          mkdir -p _site/slide1
+          cp -r slide1/dist/* _site/slide1
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+         name: github-pages
+         path: ./_site/
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: show messages
+        run: |
+         echo ${{ steps.deployment.outputs.page_url }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
